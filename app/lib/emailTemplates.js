@@ -8,7 +8,7 @@ const LIGHT_BG = "#F5F5FF";
 const DARK_TEXT = "#1e1b4b";
 const MUTED_TEXT = "#6b7280";
 const APP_NAME = "Product AI Generate";
-const APP_URL = process.env.SHOPIFY_APP_URL || "https://product-ai-generate.vercel.app";
+const APP_URL = process.env.SHOPIFY_APP_URL || "https://nexaiseo.pryxotech.com";
 
 function baseLayout({ title, previewText, body }) {
   return `<!DOCTYPE html>

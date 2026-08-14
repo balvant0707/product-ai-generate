@@ -2,7 +2,7 @@
 
 client_id = "3c547ccca21c77a2e4894a02c124a7b4"
 name = "Nex AI SEO Product Description"
-application_url = "https://ai-content-generation-nine.vercel.app"
+application_url = "https://nexaiseo.pryxotech.com"
 embedded = true
 handle = "nex-ai-seo-product-description"
 [build]
@@ -25,7 +25,7 @@ api_version = "2026-04"
   shop_deletion_url = "/webhooks/shop/redact"
 
 [app_proxy]
-url = "https://ai-content-generation-nine.vercel.app/api/llms-txt"
+url = "https://nexaiseo.pryxotech.com/api/llms-txt"
 subpath = "llms-txt"
 prefix = "apps"
 
@@ -35,7 +35,7 @@ scopes = "read_products,write_products,read_content,write_content,write_files,re
 
 [auth]
 redirect_urls = [
-  "https://ai-content-generation-nine.vercel.app/auth/callback",
-  "https://ai-content-generation-nine.vercel.app/shopify/callback",
-  "https://ai-content-generation-nine.vercel.app/api/auth/callback"
+  "https://nexaiseo.pryxotech.com/auth/callback",
+  "https://nexaiseo.pryxotech.com/shopify/callback",
+  "https://nexaiseo.pryxotech.com/api/auth/callback"
 ]
