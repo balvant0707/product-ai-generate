@@ -9,8 +9,15 @@
 // accepting connections. Failures are logged and never crash the app — a
 // missing sync degrades bulk generation, it shouldn't take the storefront down.
 
+// Must PUT the *public* URL: Inngest records the host the registration arrived
+// on as the callback address for this app. Syncing over 127.0.0.1 registers a
+// URL only the container itself can reach, and every run then fails with
+// "Unable to reach SDK URL" while the app logs nothing at all.
 const PORT = process.env.PORT || 3000;
-const ENDPOINT = `http://127.0.0.1:${PORT}/api/inngest`;
+const PUBLIC_URL = (process.env.SHOPIFY_APP_URL || "").replace(/\/+$/, "");
+const ENDPOINT = PUBLIC_URL
+  ? `${PUBLIC_URL}/api/inngest`
+  : `http://127.0.0.1:${PORT}/api/inngest`;
 
 const MAX_ATTEMPTS = 30;
 const RETRY_DELAY_MS = 2000;
@@ -33,8 +40,15 @@ async function sync() {
         return;
       }
 
-      // The server is up and answering, so a bad status is a real problem
-      // (wrong signing key, Inngest unreachable) rather than a timing issue.
+      // Going through the proxy means a booting app shows up as a gateway
+      // error rather than a refused connection — keep waiting on those.
+      if ([502, 503, 504].includes(res.status)) {
+        await sleep(RETRY_DELAY_MS);
+        continue;
+      }
+
+      // Any other bad status is a real problem (wrong signing key, Inngest
+      // unreachable) rather than a timing issue.
       console.error(
         `[inngest-sync] PUT ${ENDPOINT} returned ${res.status}: ${body.trim()}`
       );
