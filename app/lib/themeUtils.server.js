@@ -125,16 +125,11 @@ export async function isFaqSectionAddedToProductPage(shop, accessToken) {
     const themeId = (await themesResp.json())?.themes?.[0]?.id;
     if (!themeId) return false;
 
-    const assetKeys = ["templates/product.json", "templates/product.default.json"];
-    const assetResponses = await Promise.all(
-      assetKeys.map((key) =>
-        fetch(`${apiBase}/themes/${themeId}/assets.json?asset[key]=${key}`, {
-          headers: { "X-Shopify-Access-Token": accessToken },
-        }),
-      ),
-    );
-
-    for (const assetResp of assetResponses) {
+    for (const key of ["templates/product.json", "templates/product.default.json"]) {
+      const assetResp = await fetch(
+        `${apiBase}/themes/${themeId}/assets.json?asset[key]=${key}`,
+        { headers: { "X-Shopify-Access-Token": accessToken } },
+      );
       if (!assetResp.ok) continue;
       const rawContent = (await assetResp.json())?.asset?.value;
       if (!rawContent) continue;

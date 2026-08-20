@@ -54,7 +54,229 @@ export const loader = async ({ request }) => {
     return plain.split(" ").filter(Boolean).length;
   };
 
-  const [
+  const loaderQueries = [
+    {
+      key: "shopData",
+      fallback: null,
+      promise: db.shop.findUnique({
+        where: { shop: session.shop },
+        select: {
+          ownerName: true,
+          name: true,
+          credits: true,
+          creditsUsedTotal: true,
+          billingPlanKey: true,
+          billingPlanName: true,
+          billingPlanPrice: true,
+          billingPlanCredits: true,
+        },
+      }),
+    },
+    {
+      key: "faqProductPageBlockAdded",
+      fallback: false,
+      promise: isFaqSectionAddedToProductPage(session.shop, session.accessToken),
+    },
+    {
+      key: "appliedProducts",
+      fallback: [],
+      promise: db.productGeneratedContent.findMany({
+        where: { shop: session.shop, appliedToProduct: true },
+        select: { seoTitle: true, seoDescription: true },
+      }),
+    },
+    {
+      key: "appliedCollections",
+      fallback: [],
+      promise: db.collectionGeneratedContent.findMany({
+        where: { shop: session.shop, appliedToCollection: true },
+        select: { seoTitle: true, seoDescription: true },
+      }),
+    },
+    {
+      key: "appliedPages",
+      fallback: [],
+      promise: db.pageGeneratedContent.findMany({
+        where: { shop: session.shop, appliedToPage: true },
+        select: { seoTitle: true, seoDescription: true },
+      }),
+    },
+    {
+      key: "productGeneratedRows",
+      fallback: [],
+      promise: db.productGeneratedContent.findMany({
+        where: { shop: session.shop },
+        select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
+      }),
+    },
+    {
+      key: "collectionGeneratedRows",
+      fallback: [],
+      promise: db.collectionGeneratedContent.findMany({
+        where: { shop: session.shop },
+        select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
+      }),
+    },
+    {
+      key: "collectionProductGeneratedRows",
+      fallback: [],
+      promise: db.collectionProductGeneratedContent.findMany({
+        where: { shop: session.shop },
+        select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
+      }),
+    },
+    {
+      key: "pageGeneratedRows",
+      fallback: [],
+      promise: db.pageGeneratedContent.findMany({
+        where: { shop: session.shop },
+        select: { bodyHtml: true, seoTitle: true, seoDescription: true },
+      }),
+    },
+    {
+      key: "blogGeneratedRows",
+      fallback: [],
+      promise: db.$queryRaw`
+        SELECT bodyHtml
+        FROM blog_generated_contents
+        WHERE shop = ${session.shop}
+      `,
+    },
+    {
+      key: "productDescriptionCount",
+      fallback: 0,
+      promise: db.productGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "productMetaTitleCount",
+      fallback: 0,
+      promise: db.productGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "productMetaDescriptionCount",
+      fallback: 0,
+      promise: db.productGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "collectionDescriptionCount",
+      fallback: 0,
+      promise: db.collectionGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "collectionMetaTitleCount",
+      fallback: 0,
+      promise: db.collectionGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "collectionMetaDescriptionCount",
+      fallback: 0,
+      promise: db.collectionGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "collectionProductDescriptionCount",
+      fallback: 0,
+      promise: db.collectionProductGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "collectionProductMetaTitleCount",
+      fallback: 0,
+      promise: db.collectionProductGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "collectionProductMetaDescriptionCount",
+      fallback: 0,
+      promise: db.collectionProductGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "pageBodyCount",
+      fallback: 0,
+      promise: db.pageGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ bodyHtml: { not: null } }, { bodyHtml: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "pageMetaTitleCount",
+      fallback: 0,
+      promise: db.pageGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
+        },
+      }),
+    },
+    {
+      key: "pageMetaDescriptionCount",
+      fallback: 0,
+      promise: db.pageGeneratedContent.count({
+        where: {
+          shop: session.shop,
+          AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
+        },
+      }),
+    },
+  ];
+
+  const settledResults = await Promise.allSettled(loaderQueries.map((q) => q.promise));
+  const loaderData = {};
+  settledResults.forEach((result, index) => {
+    const { key, fallback } = loaderQueries[index];
+    if (result.status === "fulfilled") {
+      loaderData[key] = result.value;
+    } else {
+      console.error(`[app._index loader] ${key} failed`, result.reason);
+      loaderData[key] = fallback;
+    }
+  });
+
+  const {
     shopData,
     faqProductPageBlockAdded,
     appliedProducts,
@@ -77,127 +299,7 @@ export const loader = async ({ request }) => {
     pageBodyCount,
     pageMetaTitleCount,
     pageMetaDescriptionCount,
-  ] = await Promise.all([
-    db.shop.findUnique({
-      where: { shop: session.shop },
-      select: {
-        ownerName: true,
-        name: true,
-        credits: true,
-        creditsUsedTotal: true,
-        billingPlanKey: true,
-        billingPlanName: true,
-        billingPlanPrice: true,
-        billingPlanCredits: true,
-      },
-    }),
-    isFaqSectionAddedToProductPage(session.shop, session.accessToken),
-    db.productGeneratedContent.findMany({
-      where: { shop: session.shop, appliedToProduct: true },
-      select: { seoTitle: true, seoDescription: true },
-    }),
-    db.collectionGeneratedContent.findMany({
-      where: { shop: session.shop, appliedToCollection: true },
-      select: { seoTitle: true, seoDescription: true },
-    }),
-    db.pageGeneratedContent.findMany({
-      where: { shop: session.shop, appliedToPage: true },
-      select: { seoTitle: true, seoDescription: true },
-    }),
-    db.productGeneratedContent.findMany({
-      where: { shop: session.shop },
-      select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
-    }),
-    db.collectionGeneratedContent.findMany({
-      where: { shop: session.shop },
-      select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
-    }),
-    db.collectionProductGeneratedContent.findMany({
-      where: { shop: session.shop },
-      select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
-    }),
-    db.pageGeneratedContent.findMany({
-      where: { shop: session.shop },
-      select: { bodyHtml: true, seoTitle: true, seoDescription: true },
-    }),
-    db.$queryRaw`
-      SELECT bodyHtml
-      FROM blog_generated_contents
-      WHERE shop = ${session.shop}
-    `.catch(() => []),
-    db.productGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
-      },
-    }),
-    db.productGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
-      },
-    }),
-    db.productGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
-      },
-    }),
-    db.collectionGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
-      },
-    }),
-    db.collectionGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
-      },
-    }),
-    db.collectionGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
-      },
-    }),
-    db.collectionProductGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
-      },
-    }),
-    db.collectionProductGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
-      },
-    }),
-    db.collectionProductGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
-      },
-    }),
-    db.pageGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ bodyHtml: { not: null } }, { bodyHtml: { not: "" } }],
-      },
-    }),
-    db.pageGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
-      },
-    }),
-    db.pageGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
-      },
-    }),
-  ]);
+  } = loaderData;
 
   const shopDomain = String(session.shop || "").trim();
   const shopHandle = shopDomain.split(".")[0] || "Shop Owner";
