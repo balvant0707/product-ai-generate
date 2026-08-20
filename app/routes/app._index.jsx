@@ -44,32 +44,6 @@ import {
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const url = new URL(request.url);
-  const shopData = await db.shop.findUnique({
-    where: { shop: session.shop },
-    select: {
-      ownerName: true,
-      name: true,
-      credits: true,
-      creditsUsedTotal: true,
-      billingPlanKey: true,
-      billingPlanName: true,
-      billingPlanPrice: true,
-      billingPlanCredits: true,
-    },
-  });
-
-  const shopDomain = String(session.shop || "").trim();
-  const shopHandle = shopDomain.split(".")[0] || "Shop Owner";
-  const fallbackOwnerName = shopHandle
-    .split(/[-_]+/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-  const shopOwnerName =
-    (shopData?.ownerName || "").trim() ||
-    (shopData?.name || "").trim() ||
-    fallbackOwnerName ||
-    "Shop Owner";
 
   const countWords = (value) => {
     const plain = String(value || "")
@@ -80,96 +54,113 @@ export const loader = async ({ request }) => {
     return plain.split(" ").filter(Boolean).length;
   };
 
-  const [appliedProducts, appliedCollections, appliedPages, productGeneratedRows, collectionGeneratedRows, collectionProductGeneratedRows, pageGeneratedRows] =
-    await Promise.all([
-      db.productGeneratedContent.findMany({
-        where: { shop: session.shop, appliedToProduct: true },
-        select: { seoTitle: true, seoDescription: true },
-      }),
-      db.collectionGeneratedContent.findMany({
-        where: { shop: session.shop, appliedToCollection: true },
-        select: { seoTitle: true, seoDescription: true },
-      }),
-      db.pageGeneratedContent.findMany({
-        where: { shop: session.shop, appliedToPage: true },
-        select: { seoTitle: true, seoDescription: true },
-      }),
-      db.productGeneratedContent.findMany({
-        where: { shop: session.shop },
-        select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
-      }),
-      db.collectionGeneratedContent.findMany({
-        where: { shop: session.shop },
-        select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
-      }),
-      db.collectionProductGeneratedContent.findMany({
-        where: { shop: session.shop },
-        select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
-      }),
-      db.pageGeneratedContent.findMany({
-        where: { shop: session.shop },
-        select: { bodyHtml: true, seoTitle: true, seoDescription: true },
-      }),
-    ]);
-
-  let blogGeneratedRows = [];
-  try {
-    blogGeneratedRows = await db.$queryRaw`
-      SELECT bodyHtml
-      FROM blog_generated_contents
-      WHERE shop = ${session.shop}
-    `;
-  } catch {
-    blogGeneratedRows = [];
-  }
-
-  const [productDescriptionCount, productMetaTitleCount, productMetaDescriptionCount] = await Promise.all([
-    db.productGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
-      },
-    }),
-    db.productGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
-      },
-    }),
-    db.productGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
-      },
-    }),
-  ]);
-
-  const [collectionDescriptionCount, collectionMetaTitleCount, collectionMetaDescriptionCount] = await Promise.all([
-    db.collectionGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
-      },
-    }),
-    db.collectionGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
-      },
-    }),
-    db.collectionGeneratedContent.count({
-      where: {
-        shop: session.shop,
-        AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
-      },
-    }),
-  ]);
-
   const [
+    shopData,
+    faqProductPageBlockAdded,
+    appliedProducts,
+    appliedCollections,
+    appliedPages,
+    productGeneratedRows,
+    collectionGeneratedRows,
+    collectionProductGeneratedRows,
+    pageGeneratedRows,
+    blogGeneratedRows,
+    productDescriptionCount,
+    productMetaTitleCount,
+    productMetaDescriptionCount,
+    collectionDescriptionCount,
+    collectionMetaTitleCount,
+    collectionMetaDescriptionCount,
     collectionProductDescriptionCount,
     collectionProductMetaTitleCount,
     collectionProductMetaDescriptionCount,
+    pageBodyCount,
+    pageMetaTitleCount,
+    pageMetaDescriptionCount,
   ] = await Promise.all([
+    db.shop.findUnique({
+      where: { shop: session.shop },
+      select: {
+        ownerName: true,
+        name: true,
+        credits: true,
+        creditsUsedTotal: true,
+        billingPlanKey: true,
+        billingPlanName: true,
+        billingPlanPrice: true,
+        billingPlanCredits: true,
+      },
+    }),
+    isFaqSectionAddedToProductPage(session.shop, session.accessToken),
+    db.productGeneratedContent.findMany({
+      where: { shop: session.shop, appliedToProduct: true },
+      select: { seoTitle: true, seoDescription: true },
+    }),
+    db.collectionGeneratedContent.findMany({
+      where: { shop: session.shop, appliedToCollection: true },
+      select: { seoTitle: true, seoDescription: true },
+    }),
+    db.pageGeneratedContent.findMany({
+      where: { shop: session.shop, appliedToPage: true },
+      select: { seoTitle: true, seoDescription: true },
+    }),
+    db.productGeneratedContent.findMany({
+      where: { shop: session.shop },
+      select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
+    }),
+    db.collectionGeneratedContent.findMany({
+      where: { shop: session.shop },
+      select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
+    }),
+    db.collectionProductGeneratedContent.findMany({
+      where: { shop: session.shop },
+      select: { descriptionHtml: true, seoTitle: true, seoDescription: true },
+    }),
+    db.pageGeneratedContent.findMany({
+      where: { shop: session.shop },
+      select: { bodyHtml: true, seoTitle: true, seoDescription: true },
+    }),
+    db.$queryRaw`
+      SELECT bodyHtml
+      FROM blog_generated_contents
+      WHERE shop = ${session.shop}
+    `.catch(() => []),
+    db.productGeneratedContent.count({
+      where: {
+        shop: session.shop,
+        AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
+      },
+    }),
+    db.productGeneratedContent.count({
+      where: {
+        shop: session.shop,
+        AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
+      },
+    }),
+    db.productGeneratedContent.count({
+      where: {
+        shop: session.shop,
+        AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
+      },
+    }),
+    db.collectionGeneratedContent.count({
+      where: {
+        shop: session.shop,
+        AND: [{ descriptionHtml: { not: null } }, { descriptionHtml: { not: "" } }],
+      },
+    }),
+    db.collectionGeneratedContent.count({
+      where: {
+        shop: session.shop,
+        AND: [{ seoTitle: { not: null } }, { seoTitle: { not: "" } }],
+      },
+    }),
+    db.collectionGeneratedContent.count({
+      where: {
+        shop: session.shop,
+        AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
+      },
+    }),
     db.collectionProductGeneratedContent.count({
       where: {
         shop: session.shop,
@@ -188,9 +179,6 @@ export const loader = async ({ request }) => {
         AND: [{ seoDescription: { not: null } }, { seoDescription: { not: "" } }],
       },
     }),
-  ]);
-
-  const [pageBodyCount, pageMetaTitleCount, pageMetaDescriptionCount] = await Promise.all([
     db.pageGeneratedContent.count({
       where: {
         shop: session.shop,
@@ -210,6 +198,19 @@ export const loader = async ({ request }) => {
       },
     }),
   ]);
+
+  const shopDomain = String(session.shop || "").trim();
+  const shopHandle = shopDomain.split(".")[0] || "Shop Owner";
+  const fallbackOwnerName = shopHandle
+    .split(/[-_]+/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  const shopOwnerName =
+    (shopData?.ownerName || "").trim() ||
+    (shopData?.name || "").trim() ||
+    fallbackOwnerName ||
+    "Shop Owner";
 
   const blogContentCount = blogGeneratedRows.filter((row) => String(row?.bodyHtml || "").trim()).length;
 
@@ -320,7 +321,6 @@ export const loader = async ({ request }) => {
   const billingPlanCredits = Number(shopData?.billingPlanCredits ?? 0);
   const planDef = getSubscriptionPlan(billingPlanKey, process.env);
   const billingInterval = planDef && billingPlanCredits > (planDef.credits || 0) ? "yearly" : "monthly";
-  const faqProductPageBlockAdded = await isFaqSectionAddedToProductPage(session.shop, session.accessToken);
 
   return {
     shopOwnerName,
@@ -818,6 +818,10 @@ export default function Index() {
                           <img
                             src={app.logoSrc}
                             alt={`${app.title} logo`}
+                            width={28}
+                            height={28}
+                            loading="lazy"
+                            decoding="async"
                             style={{ width: 28, height: 28, objectFit: "contain" }}
                           />
                           <Text as="h3" variant="headingSm">
